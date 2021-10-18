@@ -1,3 +1,4 @@
+Write-Host '我是用〔往返各國, 管制, 入境架次, 事由統計, 大陸返台, 入境移工〕等關鍵字找檔案....'
 $ExcelFileDir=Read-Host "FileDir"
 $ExcelPWd=Read-Host "Password" -AsSecureString
 $ExcelPWd=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ExcelPWd)
@@ -22,7 +23,8 @@ for($i=0;$i-lt$temp.Length;$i++){
 				$sheetc = $ExcelWorkBook.Sheets.Count
 				for($j=1;$j-lt$sheetc+1;$j++){$sheetl+=$ExcelWorkBook.Sheets.Item($j).Name+','}
 				Write-Host $temp[$i] : $sheetc sheets of $sheetl
-				Write-Host '******** Result : 共'$sheetc'份統計資料 ********'
+				Write-Host '********'$temp[$i]'''s Result : 共'$sheetc'份統計資料 ********'
+				Write-Host
 				break
 				}
 			'SNS'{
@@ -37,8 +39,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 				for($j=0;$j-lt$rowmd.Length;$j++){$vall+='|---'+$rowmd2[$j+1]+'---|'+$rowmd[$j]+':'+$rowv[$j+1]}
 				$vall = $vall.Replace('|------|',', ')
 				Write-Host $temp[$i] : $rowv[0] of $vall
-				
-				Write-Host '******** Result : ********'
+				Write-Host '********'$temp[$i]'''s Result : ********'
 				Write-Host '新增國人由疫區入境'$rowv[1]'筆。'
 				Write-Host '新增國人出境管制'$rowv[2]'筆(含CDC列管)。'
 				Write-Host '逾管制效期自動失效'$rowv[3]'筆。'
@@ -47,6 +48,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 				Write-Host '新增外人出境管制'$rowv[6]'筆(含CDC列管)。'
 				Write-Host '逾管制效期自動失效'$rowv[7]'筆。'
 				Write-Host '累計外人出境管制'$rowv[8]'筆。'
+				Write-Host				
 				break
 				}
 			'FEE'{
@@ -66,9 +68,10 @@ for($i=0;$i-lt$temp.Length;$i++){
 				$chksum3=$fee_rowv3[($endidx3-$j)..($endidx3-1)] | Measure-Object -Sum
 				'if(' + $chksum3.Sum/2 + '=' + $fee_rowv3[$endidx3-1] + '):'
 				if($chksum3.Sum/2 -eq $fee_rowv3[$endidx3-1]){'人數Check'}else{'人數 Not Check'}
-				Write-Host '******** Result : ********'
+				Write-Host '********'$temp[$i]'''s Result : ********'
 				Write-Host $fee_rowv2[$endidx2-1]'架次'
 				Write-Host $fee_rowv3[$endidx3-1]'人'
+				Write-Host
 				break
 				}
 			'RS'{
@@ -94,9 +97,10 @@ for($i=0;$i-lt$temp.Length;$i++){
 				$chksum4=$rs_col4[1..($endidx4-1)] | Measure-Object -Sum
 				'if(' + $chksum4.Sum/2 + '=' + $rs_col4[1] + '):'
 				if($chksum4.Sum/2 -eq $rs_col4[1]){'出境Check'}else{'出境 Not Check'}
-				Write-Host '******** Result : ********'
+				Write-Host '********'$temp[$i]'''s Result : ********'
 				Write-Host '入境'$rs_col2[1]'人'
 				Write-Host '出境'$rs_col4[1]'人'
+				Write-Host
 				break
 				}
 			'CR'{
@@ -104,7 +108,8 @@ for($i=0;$i-lt$temp.Length;$i++){
 				$cr_col = $ExcelWorkBook.Sheets.Item(1).usedrange.columns("A").value2
 				$cr_cnt = ($cr_col-match'\d{12}').count
 				Write-Host $temp[$i] : $cr_cnt
-				Write-Host '******** Result :共'$cr_cnt'筆 ********'
+				Write-Host '********'$temp[$i]'''s Result :共'$cr_cnt'筆 ********'
+				Write-Host
 				break
 			}
 			'EI'{
@@ -124,7 +129,8 @@ for($i=0;$i-lt$temp.Length;$i++){
 				Write-Host Confirm :
 				'if(' + $cal_val + '=' + $chk_val + '):'
 				if($cal_val -eq $chk_val){'人數Check'}else{'人數 Not Check'}
-				Write-Host '******** Result :共'$cal_val'筆 ********'
+				Write-Host '********'$temp[$i]'''s Result :共'$cal_val'筆 ********'
+				Write-Host
 				break
 			}
 		}
