@@ -1,9 +1,9 @@
-Write-Host '我是用〔往返各國, 管制, 入境架次, 事由統計, 大陸返台, 入境移工〕等關鍵字找檔案....'
+Write-Host '我是用〔往返各國, 管制, 入境架次, 事由統計, 大陸返台, 入境移工, DailyImmigPosAll〕等關鍵字找檔案....'
 $ExcelFileDir=Read-Host "FileDir"
 $ExcelPWd=Read-Host "Password" -AsSecureString
 $ExcelPWd=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ExcelPWd)
 $ExcelPWd=[System.Runtime.InteropServices.Marshal]::PtrToStringAuto($ExcelPWd)
-$temp=dir $ExcelFileDir -Name -Include *.xlsx -Exclude IGR*.xlsx,CDC*.xlsx
+$temp=@(dir $ExcelFileDir -Name -Include *.xlsx,*.xls -Exclude IGR*.xlsx,CDC*.xlsx)
 $ExcelObj = $null
 $ExcelObj = New-Object -ComObject Excel.Application
 for($i=0;$i-lt$temp.Length;$i++){
@@ -14,6 +14,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 	if($temp[$i]-match'事由統計'){$ftype='RS'}
 	if($temp[$i]-match'大陸返台'){$ftype='CR'}
 	if($temp[$i]-match'入境移工'){$ftype='EI'}
+	if($temp[$i]-match'DailyImmigPosAll'){$ftype='DIPA'}
 	#當sheet僅1row時row1c組字串A1雖match為False仍會被count:1故硬加1
 
 
@@ -133,9 +134,23 @@ for($i=0;$i-lt$temp.Length;$i++){
 				Write-Host
 				break
 			}
+			'DIPA'{
+				Write-Host -------- $temp[$i] --------
+				$tgt_date = $temp[$i].Split('.')[0].Split('_')[-1]
+				$row_find_dipa = $ExcelWorkBook.Sheets.Item(1).cells.find($tgt_date).row
+				$val_dipa = @($ExcelWorkBook.Sheets.Item(1).usedrange.rows($row_find_dipa).value2)
+				
+				Write-Host $temp[$i] : $val_dipa[0] of $val_dipa
+				Write-Host '********'$temp[$i]'''s Result : ********'
+				Write-Host '1、入境總人次：'$val_dipa[7]'人；含國人'$val_dipa[1]'人、大陸地區人民'$val_dipa[2]'人、港澳居民'$val_dipa[3]'人、無戶籍國民'$val_dipa[4]'人及外國人'$val_dipa[5]'人。'
+				Write-Host '2、出境總人次：'$val_dipa[14]'人；含國人'$val_dipa[8]'人、大陸地區人民'$val_dipa[9]'人、港澳居民'$val_dipa[10]'人、無戶籍國民'$val_dipa[11]'人及外國人'$val_dipa[12]'人。'
+				Write-Host				
+				break
+			}
 		}
 	$ExcelObj.Workbooks.Close()
 }
+Write-Host '---End of Result printed'
 $ExcelObj.Quit()
 [System.Runtime.Interopservices.Marshal]::ReleaseComObject($ExcelObj)
 Remove-Variable $ExcelObj
