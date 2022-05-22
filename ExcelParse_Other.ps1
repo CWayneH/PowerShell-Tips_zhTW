@@ -1,4 +1,4 @@
-Write-Host '我是用〔往返各國, 管制, 入境架次, 事由統計, 大陸返台, 入境移工, DailyImmigPosAll〕等關鍵字找檔案....'
+Write-Host '我是用〔往返各國, 管制, 入境架次, 事由統計, 大陸返台, 入境移工, DailyImmigPosAll, 防疫需求〕等關鍵字找檔案....'
 $ExcelFileDir=Read-Host "FileDir"
 $ExcelPWd=Read-Host "Password" -AsSecureString
 $ExcelPWd=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ExcelPWd)
@@ -15,8 +15,9 @@ for($i=0;$i-lt$temp.Length;$i++){
 	if($temp[$i]-match'大陸返台'){$ftype='CR'}
 	if($temp[$i]-match'入境移工'){$ftype='EI'}
 	if($temp[$i]-match'DailyImmigPosAll'){$ftype='DIPA'}
+	if($temp[$i]-match'防疫需求'){$ftype='PDFP'}
+	
 	#當sheet僅1row時row1c組字串A1雖match為False仍會被count:1故硬加1
-
 
 		switch($ftype){
 			'RT'{
@@ -139,11 +140,31 @@ for($i=0;$i-lt$temp.Length;$i++){
 				$tgt_date = $temp[$i].Split('.')[0].Split('_')[-1]
 				$row_find_dipa = $ExcelWorkBook.Sheets.Item(1).cells.find($tgt_date).row
 				$val_dipa = @($ExcelWorkBook.Sheets.Item(1).usedrange.rows($row_find_dipa).value2)
-				
+				if($val_pdfp-ne$null){
+					Write-Host Confirm :
+					'if(本報表之入境：外人合計' + $val_dipa[6] + '=' + $val_pdfp[7] + '防疫需求外來人口入境目的統計表總計):'
+					if($val_dipa[6] -eq $val_pdfp[7]){'人數Check'}else{'人數 Not Check'}
+				}
 				Write-Host $temp[$i] : $val_dipa[0] of $val_dipa
 				Write-Host '********'$temp[$i]'''s Result : ********'
 				Write-Host '1、入境總人次：'$val_dipa[7]'人；含國人'$val_dipa[1]'人、大陸地區人民'$val_dipa[2]'人、港澳居民'$val_dipa[3]'人、無戶籍國民'$val_dipa[4]'人及外國人'$val_dipa[5]'人。'
 				Write-Host '2、出境總人次：'$val_dipa[14]'人；含國人'$val_dipa[8]'人、大陸地區人民'$val_dipa[9]'人、港澳居民'$val_dipa[10]'人、無戶籍國民'$val_dipa[11]'人及外國人'$val_dipa[12]'人。'
+				Write-Host				
+				break
+			}
+			'PDFP'{
+				Write-Host -------- $temp[$i] --------
+				$tgt_date2 = $temp[$i].Split('.')[0].Split('-')[-1]
+				$row_find_pdfp = $ExcelWorkBook.Sheets.Item(1).cells.find($tgt_date2).row
+				$val_pdfp = @($ExcelWorkBook.Sheets.Item(1).usedrange.rows($row_find_pdfp).value2)
+				if($val_dipa-ne$null){
+					Write-Host Confirm :
+					'if(中外人士入出境統計表之入境：外人合計' + $val_dipa[6] + '=' + $val_pdfp[7] + '本報表之總計):'
+					if($val_dipa[6] -eq $val_pdfp[7]){'人數Check'}else{'人數 Not Check'}
+				}
+				Write-Host $temp[$i] : $val_pdfp[0] of $val_pdfp
+				Write-Host '********'$temp[$i]'''s Result : ********'
+				Write-Host '商務：'$val_pdfp[1]'人；求學'$val_pdfp[2]'人；探親'$val_pdfp[3]'人；居留'$val_pdfp[4]'人；移工'$val_pdfp[5]'人；其他'$val_pdfp[6]'人。'
 				Write-Host				
 				break
 			}
