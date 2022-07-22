@@ -6,10 +6,11 @@ $ExcelPWd=[System.Runtime.InteropServices.Marshal]::PtrToStringAuto($ExcelPWd)
 $temp=@(dir $ExcelFileDir -Name -Include *.xlsx,*.xls -Exclude IGR*.xlsx,CDC*.xlsx)
 $ExcelObj = $null
 $ExcelObj = New-Object -ComObject Excel.Application
+# build result printed
+$res = [Object[]]::new($temp.Length)
 for($i=0;$i-lt$temp.Length;$i++){
 	Write-Host "`t`t`t+`n`t`t`t-`n`t`t--`n`t---`n----Begin of "$temp[$i]
 	# Write-Host Processing at : $i
-	Write-Host "-------------------------`n-Processing at : "$i"`n-Matching filetype : "$ftype"`n-------------------------"
 	$ExcelWorkBook = $ExcelObj.Workbooks.Open($ExcelFileDir+'\'+$temp[$i],0,0,5,$ExcelPWd)
 	if($temp[$i]-match'往返各國'){$ftype='RT'}
 	if($temp[$i]-match'管制'){$ftype='SNS'}
@@ -22,7 +23,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 	if($temp[$i]-match'入境旅客分類'){$ftype='IPC'} # 20220627增
 	#當sheet僅1row時row1c組字串A1雖match為False仍會被count:1故硬加1
 	# Write-Host Matching filetype : $ftype
-
+	Write-Host "-------------------------`n-Processing at : "$i"`n-Matching filetype : "$ftype"`n-------------------------"
 		switch($ftype){
 			'RT'{
 				# # Write-Host -------- $temp[$i] --------
@@ -30,6 +31,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 				for($j=1;$j-lt$sheetc+1;$j++){$sheetl+=$ExcelWorkBook.Sheets.Item($j).Name+','}
 				Write-Host $temp[$i] : $sheetc sheets of $sheetl
 				Write-Host "`n********"$temp[$i]"'s Result : 共"$sheetc"份統計資料 ********`n"
+				$res[$i] = "前一日往返陸港澳、北京、港澳、中國、韓國、日本、美國、加拿大、歐洲、英國、紐西蘭、澳大利亞、越南、泰國、新加坡、菲律賓、馬來西亞、印尼、印度等國之入出境旅客統計。 : 共"+$sheetc+"份統計資料"
 				break
 				}
 			'SNS'{
@@ -40,11 +42,17 @@ for($i=0;$i-lt$temp.Length;$i++){
 				$rowc="A"+($ExcelWorkBook.sheets.item(2).UsedRange.Rows.Count)
 				$rowa=$ExcelWorkBook.sheets.item(2).Range("A1",$rowc).Value2
 				$rowcount=($rowa-match'\d{8}').Count+3
-				$rowv=@($ExcelWorkBook.sheets.item(2).rows($rowcount).value2)
+				$rowv=@($ExcelWorkBook.sheets.item(2).usedrange.rows($rowcount).value2)
+				# 處理輸出
 				for($j=0;$j-lt$rowmd.Length;$j++){$vall+='|---'+$rowmd2[$j+1]+'---|'+$rowmd[$j]+':'+$rowv[$j+1]}
 				$vall = $vall.Replace('|------|',', ')
 				Write-Host $temp[$i] : $rowv[0] of $vall
 				Write-Host "`n********"$temp[$i]"'s Result : ********`n新增國人由疫區入境"$rowv[1]"筆。`n新增國人出境管制"$rowv[2]"筆(含CDC列管)。`n逾管制效期自動失效"$rowv[3]"筆。`n累計本國人出境管制"$rowv[4]"筆。`n新增外人由疫區入境"$rowv[5]"筆。`n新增外人出境管制"$rowv[6]"筆(含CDC列管)。`n逾管制效期自動失效"$rowv[7]"筆。`n累計外人出境管制"$rowv[8]"筆。"
+				# 轉千分位表示 建立暫存int陣列方式
+				$res_sns=@(1)*$rowv.Length
+				# rowv的陣列值為string 需強轉int
+				for($l=0;$l-lt$res_sns.Length;$l++){$res_sns[$l]='{0:N0}'-f[int]$rowv[$l]}
+				$res[$i]="針對前一日由疫區入境旅客執行出境管制及解列 : `n(一)本國人出境管制`n1、新增國人由疫區入境"+'{0:N0}'-f$res_sns[1]+"筆。`n2、新增國人出境管制"+$res_sns[2]+"筆(含CDC列管)。`n3、逾管制效期自動失效"+$res_sns[3]+"筆。`n4、累計本國人出境管制"+$res_sns[4]+"筆。`n(二) 外人(無戶籍+中港澳+外國籍)出境管制`n1、新增外人由疫區入境"+$res_sns[5]+"筆。`n2、新增外人出境管制"+$res_sns[6]+"筆(含CDC列管)。`n3、逾管制效期自動失效"+$res_sns[7]+"筆。`n4、累計外人出境管制"+$res_sns[8]+"筆。"
 				break
 				}
 			'FEE'{
@@ -68,6 +76,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 				Write-Host "`n********"$temp[$i]"'s Result : ********`n"
 				Write-Host $fee_rowv2[$endidx2-1]'架次'
 				Write-Host $fee_rowv3[$endidx3-1]'人'
+				$res[$i]="前一日各機場港口入境架次入境人數統計表:`n"+'{0:N0}'-f$fee_rowv2[$endidx2-1]+"架次`n"+'{0:N0}'-f$fee_rowv3[$endidx3-1]+"人"
 				break
 				}
 			'RS'{
@@ -96,6 +105,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 				Write-Host "`n********"$temp[$i]"'s Result : ********`n"
 				Write-Host '入境'$rs_col2[1]'人'
 				Write-Host '出境'$rs_col4[1]'人'
+				$res[$i]="前一日大陸人士每日入出境依事由統計人次表:`n入境"+'{0:N0}'-f$rs_col2[1]+"人`n出境"+'{0:N0}'-f$rs_col4[1]+"人"
 				break
 				}
 			'CR'{
@@ -104,6 +114,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 				$cr_cnt = ($cr_col-match'\d{12}').count
 				Write-Host $temp[$i] : $cr_cnt
 				Write-Host "`n********"$temp[$i]"'s Result :共"$cr_cnt"筆 ********`n"
+				$res[$i]="大陸返臺入境名冊:共"+'{0:N0}'-f$cr_cnt+"筆"
 				break
 			}
 			'EI'{
@@ -126,7 +137,9 @@ for($i=0;$i-lt$temp.Length;$i++){
 				"`tif(" + $col_find + $row_find + '之合計值' + $cal_val + '=' + $chk_val + '第2:7列檢核值):'
 				if($cal_val -eq $chk_val){"`r`n`t--> 人數Check <--`r`n"}else{"`r`n`t--> 人數Not Check <--`r`n"}
 				Write-Host "`n********"$temp[$i]"'s Result :共"$cal_val"筆 ********`n"
+				$res[$i]="前一日入境移工人數統計表及名冊:共"+'{0:N0}'-f$cal_val+"筆"
 				# Write-Host -------- $temp[$i] --------
+				
 				break
 			}
 			'DIPA'{
@@ -149,6 +162,10 @@ for($i=0;$i-lt$temp.Length;$i++){
 				Write-Host "`n********"$temp[$i]"'s Result : ********`n"
 				Write-Host "1、入境總人次："$val_dipa[7]"人；含國人"$val_dipa[1]"人、大陸地區人民"$val_dipa[2]"人、港澳居民"$val_dipa[3]"人、無戶籍國民"$val_dipa[4]"人及外國人"$val_dipa[5]"人。"
 				Write-Host "2、出境總人次："$val_dipa[14]"人；含國人"$val_dipa[8]"人、大陸地區人民"$val_dipa[9]"人、港澳居民"$val_dipa[10]"人、無戶籍國民"$val_dipa[11]"人及外國人"$val_dipa[12]"人。"		
+				# 轉千分位表示 以deep copy一份val_dipa陣列值方式
+				$res_dipa=$val_dipa.Clone()
+				for($k=0;$k-lt$res_dipa.Length;$k++){$res_dipa[$k]='{0:N0}'-f$res_dipa[$k]}
+				$res[$i]="本部移民署統計有關入出境人流數據摘陳如下：`n昨("+([string]$res_dipa[0]).Substring(([string]$res_dipa[0]).Length-2,2)+")日入出境概況：`n1、入境總人次："+$res_dipa[7]+"人；含國人"+$res_dipa[1]+"人、大陸地區人民"+$res_dipa[2]+"人、港澳居民"+$res_dipa[3]+"人、無戶籍國民"+$res_dipa[4]+"人及外國人"+$res_dipa[5]+"人。`n2、出境總人次："+$res_dipa[14]+"人；含國人"+$res_dipa[8]+"人、大陸地區人民"+$res_dipa[9]+"人、港澳居民"+$res_dipa[10]+"人、無戶籍國民"+$res_dipa[11]+"人及外國人"+$res_dipa[12]+"人。"
 				break
 			}
 			'PDFP'{
@@ -160,6 +177,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 					Write-Host Confirm :
 					"`tif(中外人士入出境統計表之入境：外人合計" + $val_dipa[6] + '=' + $val_pdfp[7] + '本報表之總計):'
 					if($val_dipa[6] -eq $val_pdfp[7]){"`r`n`t--> 人數Check <--`r`n"}else{"`r`n`t--> 人數Not Check <--`r`n"}
+					$res[$i]="檢查項目:中外人士入出境統計表之外人入境合計為"+'{0:N0}'-f$res_dipa[6]+"、防疫需求外來人口入境目的統計表總計為"+'{0:N0}'-f$val_pdfp[7]+"`n是否相同:"+($val_dipa[6] -eq $val_pdfp[7])
 				}
 				Write-Host $temp[$i] : $val_pdfp[0] of $val_pdfp
 				Write-Host "`n********"$temp[$i]"'s Result : ********`n"
@@ -176,20 +194,27 @@ for($i=0;$i-lt$temp.Length;$i++){
 					Write-Host Confirm :
 					"`tif(中外人士入出境統計表之入境：合計" + $val_dipa[7] + '=' + $val_ipc[4] + '本報表之總計):'
 					if($val_dipa[7] -eq $val_ipc[4]){"`r`n`t--> 人數Check <-- `r`n"}else{"`r`n`t--> 人數 Not Check，請檢查是否為查驗補傳送資料誤差 <--`r`n"}
+					$res[$i]="檢查項目:中外人士入出境統計表之入境合計為"+'{0:N0}'-f$res_dipa[7]+"、入境旅客分類統計(陳政次指示)為"+'{0:N0}'-f$val_ipc[4]+"`n是否相同:"+($val_dipa[7] -eq $val_ipc[4])
 				}
 				Write-Host $temp[$i] : $val_ipc[0] of $val_ipc
 				Write-Host "`n********"$temp[$i]"'s Result : ********`n"
 				Write-Host '國人：'$val_ipc[1]"人；`r`n無戶籍國人、陸港澳及外國人：`n`t1)居留證(含居留與永居)"$val_ipc[2]"人、`n`t2)入境許可證(含各種入出境許可及免簽)"$val_ipc[3]'人。'
-				Write-Host				
 				break
 			}
 		}
 	$ExcelObj.Workbooks.Close()
 	Write-Host "----End of "$temp[$i]"`n`t---`n`t`t--`n`t`t`t-"
 }
-Write-Host "-----------------------`n-End of Result printed-`n-----------------------"
+Write-Host "`t`t------------------------`n`t`tBegin of Result printed:`n`t`t------------------------`n"
+for($i=0;$i-lt$res.Length;$i++){
+	$res[$i]
+	Write-Host
+}
+Write-Host "`t`t-----------------------`n`t`tEnd of Result printed.`n`t`t-----------------------`n"
 $ExcelObj.Quit()
 [System.Runtime.Interopservices.Marshal]::ReleaseComObject($ExcelObj)
 Remove-Variable $ExcelObj
 
 pause
+
+# Author@CWayneH
