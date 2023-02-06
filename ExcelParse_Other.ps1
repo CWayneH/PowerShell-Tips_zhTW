@@ -170,7 +170,7 @@ for($i=0;$i-lt$temp.Length;$i++){
 			}
 			'PDFP'{
 				# Write-Host -------- $temp[$i] --------
-				$tgt_date2 = $temp[$i].Split('.')[0].Split('-')[-1]
+				$tgt_date2 = $temp[$i].Split('.')[0].Split('(')[0].Split('-')[-1]
 				$row_find_pdfp = $ExcelWorkBook.Sheets.Item(1).cells.find($tgt_date2).row
 				$val_pdfp = @($ExcelWorkBook.Sheets.Item(1).usedrange.rows($row_find_pdfp).value2)
 				if($val_dipa-ne$null){
@@ -187,7 +187,9 @@ for($i=0;$i-lt$temp.Length;$i++){
 			'IPC'{
 				# Write-Host -------- $temp[$i] --------
 				# 分隔檔名之日期是用')'較不普遍
-				$tgt_date3 = $temp[$i].Split('.')[0].Split(')')[-1]
+				# $tgt_date3 = $temp[$i].Split('.')[0].Split(')')[-1]
+				# 20230206分隔檔名取消括號，日期改由取內容數字8碼
+				$tgt_date3 = ($temp[$i] -split '(\d{8})')[1]
 				$row_find_ipc = $ExcelWorkBook.Sheets.Item(1).cells.find($tgt_date3).row
 				$val_ipc = @($ExcelWorkBook.Sheets.Item(1).usedrange.rows($row_find_ipc).value2)
 				if($val_dipa-ne$null){
