@@ -83,7 +83,7 @@ function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API,2:IM
 
 Out-File -Append -InputObject "START TIME:$(Get-Date)" $output$(Get-Date -Format "yyyy-MM-dd")'_postlog.txt'
 $postWay = Read-Host "Choose one POST Path (1:SECURITY, 2:IMMI/EGATE, 3:APPLYCASE):"
-$dataArr = Get-Content D:\NIA\API\postAPI_target\*.csv -Encoding UTF8
+$dataArr = Get-Content D:\{path}\API\postAPI_target\*.csv -Encoding UTF8
 $keyPos = Read-Host "?Where is Key Column offset(0-N)"
 switch($postWay){
 	1{
@@ -203,3 +203,6 @@ switch($postWay){
 }
 
 Out-File -Append -InputObject "END TIME:$(Get-Date)" $output$(Get-Date -Format "yyyy-MM-dd")'_postlog.txt'
+
+# 2021-07-28
+# Author@CWayneH
