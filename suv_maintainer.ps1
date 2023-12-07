@@ -20,11 +20,10 @@ while ($true) {
 	
 	# initial setup
 	$goodStatus = "G"
-	$badStatus = "R"
-	$IPs = "168.**.32.202","168.**.32.203"
-	$ports = 12001,12002,12003
-	$frame = "http:///checksts"
-	# IP list composed.
+	$badStatus = "Y"
+	$IPs = "168.203.32.202","168.203.32.203"
+	$ports = 8001,8002,8000
+	$frame = "http:///check_all"
 	$EndPoints = foreach ($i in $IPs){ foreach ($j in $ports) {$frame.Insert(7,$i+":"+$j)} }
     if ($request.url.PathAndQuery -match "/end$")
     {Break;}
@@ -56,23 +55,33 @@ while ($true) {
                     }
                 }
             }
-			"/testing" {
-				if ($request.HttpMethod -eq 'GET') {
-					try {
-						# http request by sequence
-						$res = $EndPoints | ForEach-Object {Invoke-RestMethod $_}
-						Write-Output $res | ConvertTo-Json
-					}
-					catch {
-							Write-Output $Error[0]
-					}
-					# to do : set the if-state to diff good/bad payload
-					if(![uint32]$res.code){$state = $goodStatus} else {$state = $badStatus;$badPayload = $res | ?{$_.code-notmatch 0} | ConvertTo-Json -Depth 10}
-					$meta = $EndPoint.split("/")[2]+$badPayload
+			"/maintainer/testing" {
+				if ($request.HttpMethod -eq 'POST') {
 					
-					$default = '{"status":"'+$state+'","desc":"'+$meta+'"}' | ConvertFrom-Json
+					# http request by sequence
+					# 23-12-07 try-catch for FRE bad http status
+					$res = $EndPoints | ForEach-Object {
+						try { Invoke-RestMethod $_ } catch { $_.ErrorDetails.Message | ConvertFrom-Json }
+					}
+					$len = $res.Length
+					$res | Add-Member -Name 'service' -MemberType NoteProperty -Value $null
+					0..($len-1) | ForEach-Object {$res[$PSItem].service = $EndPoints[$PSItem]}
+					Write-Output $res | ConvertTo-Json
+					
+					$rcodeSwitch = ($res.code | Measure-Object -Sum).Sum
+					if(![uint32]$rcodeSwitch){
+						$state = $goodStatus
+						$refinfo = 'All '+$len+' nodes below are well; '+ [String]::Join(',',$res.service)
+					} else {
+						$state = $badStatus
+						$refinfo = [String]::Join(',',($res | ?{$_.code -ne 0}))
+						# $refinfo_rep=$refinfo.replace('{','\{').replace('}','\}')
+					}
+					
+					$default = '{"status":"'+$state+'","desc":"'+$refinfo+'"}' | ConvertFrom-Json
 					$message = $default | ConvertTo-Json -Depth 10
 					$response.ContentType = 'application/json'
+					Out-File -Append -InputObject "$(Get-Date -DisplayHint Time) From $RemoteAddr POST Prepared response:$message" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
 				}
 			}
 			"/maintainer" {
@@ -101,26 +110,35 @@ while ($true) {
 					# SUV agent use POST method.
                     POST {
                         try {		
-							$EndPoint = "http://168.**.32.202:10001/check_all"
-							$res = Invoke-RestMethod -Uri $EndPoint -Method "GET"
+							# http request by sequence
+							$res = $EndPoints | ForEach-Object {Invoke-RestMethod $_}
+							$len = $res.Length
+							$res | Add-Member -Name 'service' -MemberType NoteProperty -Value $null
+							0..($len-1) | ForEach-Object {$res[$PSItem].service = $EndPoints[$PSItem]}
 							Write-Output $res | ConvertTo-Json
 						}	
 						catch {
 							Write-Output $Error[0]
 						}
-						if(![uint32]$res.code){$state = $goodStatus} else {$state = $badStatus}
-						# description composed
-						$info = $res.status | ConvertTo-Json -Depth 10
-						$meta = '{"IP":"'+$EndPoint.split("/")[2]+'","info":'+$info+'}' | ConvertTo-Json -Depth 10
-						$default = '{"status":"'+$state+'","desc":'+$meta+'}' | ConvertFrom-Json
+						$rcodeSwitch = ($res.code | Measure-Object -Sum).Sum
+						if(![uint32]$rcodeSwitch){
+							$state = $goodStatus
+							$refinfo = '"All '+$len+' nodes below are well; '+ [String]::Join(', ',$res.service)+'"'
+						} else {
+							$state = $badStatus
+							$refinfo = $res | ?{$_.code -ne 0} | ConvertTo-Json -Depth 10
+						}
+						
+						$default = '{"status":"'+$state+'","desc":'+$refinfo+'}' | ConvertFrom-Json
 						$message = $default | ConvertTo-Json -Depth 10
 						$response.ContentType = 'application/json'
 						Out-File -Append -InputObject "$(Get-Date -DisplayHint Time) From $RemoteAddr POST Prepared response:$message" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
                     }
                 }
+				Write-Output ProcessID:$PID
 				$counter++
 				Write-Output $counter
-				Out-File -Append -InputObject $counter $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
+				Out-File -Append -InputObject "Current Process($PID) is counting $counter usage" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
 			}	
 		}
         [byte[]]$buffer = [System.Text.Encoding]::UTF8.GetBytes($message)
@@ -135,5 +153,5 @@ $listener.dispose()
 Out-File -Append -InputObject "END TIME:$(Get-Date)" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
 Out-File -Append -InputObject "--------------------Finished--------------------" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
 
-# 2023-12-04
+# version-0.0.3
 # Author@CWayneH
