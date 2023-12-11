@@ -3,7 +3,7 @@
 
 $op_rec = '.\Logs\'
 Out-File -Append -InputObject "START TIME:$(Get-Date)" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
-# Create a listener on port 80
+# Create a listener on port 5987
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add('http://+:5987/') 
 $listener.Start()
@@ -21,8 +21,8 @@ while ($true) {
 	# initial setup
 	$goodStatus = "G"
 	$badStatus = "Y"
-	$IPs = "168.203.32.202","168.203.32.203"
-	$ports = 8001,8002,8000
+	$IPs = "168.**.**.202","168.**.**.203"
+	$ports = 8**1,8**2,8**0
 	$frame = "http:///check_all"
 	$EndPoints = foreach ($i in $IPs){ foreach ($j in $ports) {$frame.Insert(7,$i+":"+$j)} }
     if ($request.url.PathAndQuery -match "/end$")
@@ -60,7 +60,7 @@ while ($true) {
 				if ($request.HttpMethod -eq 'POST') {
 					
 					$res = try {
-						Invoke-RestMethod -Uri "http://168.203.20.125:8084/wsc.asmx/IMGObtain?strType=01234&strBarcode=56789" -Method "GET"
+						Invoke-RestMethod -Uri "http://168.**.20.**:8084/wsc.asmx/IMGObtain?strType=01234&strBarcode=56789" -Method "GET"
 					} catch {
 						$_.ErrorDetails.Message
 					}
@@ -71,7 +71,7 @@ while ($true) {
 						$refinfo = '=====Exception information=====\r\n'+$res
 					} else {
 						$state = $goodStatus
-						$refinfo = 'HTTP GET IMGObtain(168.203.20.125) Response: '+[String]($res.IMGObtain | ConvertTo-Csv).Replace('"','\"')
+						$refinfo = 'HTTP GET IMGObtain(168.**.**.125) Response: '+[String]($res.IMGObtain | ConvertTo-Csv).Replace('"','\"')
 						# $refinfo_rep=$refinfo.replace('{','\{').replace('}','\}')
 					}
 					
