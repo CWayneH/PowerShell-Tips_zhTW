@@ -55,26 +55,23 @@ while ($true) {
                     }
                 }
             }
-			"/maintainer/testing" {
+			# 23-12-08 developed for practice
+			"/maintainer/imgobtain" {
 				if ($request.HttpMethod -eq 'POST') {
 					
-					# http request by sequence
-					# 23-12-07 try-catch for FRE bad http status
-					$res = $EndPoints | ForEach-Object {
-						try { Invoke-RestMethod $_ } catch { $_.ErrorDetails.Message | ConvertFrom-Json }
+					$res = try {
+						Invoke-RestMethod -Uri "http://168.203.20.125:8084/wsc.asmx/IMGObtain?strType=01234&strBarcode=56789" -Method "GET"
+					} catch {
+						$_.ErrorDetails.Message
 					}
-					$len = $res.Length
-					$res | Add-Member -Name 'service' -MemberType NoteProperty -Value $null
-					0..($len-1) | ForEach-Object {$res[$PSItem].service = $EndPoints[$PSItem]}
-					Write-Output $res | ConvertTo-Json
 					
-					$rcodeSwitch = ($res.code | Measure-Object -Sum).Sum
-					if(![uint32]$rcodeSwitch){
-						$state = $goodStatus
-						$refinfo = 'All '+$len+' nodes below are well; '+ [String]::Join(',',$res.service)
-					} else {
+					$rcodeSwitch = $res.ChildNodes.Length
+					if(!$rcodeSwitch){
 						$state = $badStatus
-						$refinfo = [String]::Join(',',($res | ?{$_.code -ne 0}))
+						$refinfo = '=====Exception information=====\r\n'+$res
+					} else {
+						$state = $goodStatus
+						$refinfo = 'HTTP GET IMGObtain(168.203.20.125) Response: '+[String]($res.IMGObtain | ConvertTo-Csv).Replace('"','\"')
 						# $refinfo_rep=$refinfo.replace('{','\{').replace('}','\}')
 					}
 					
@@ -109,27 +106,28 @@ while ($true) {
                     }
 					# SUV agent use POST method.
                     POST {
-                        try {		
-							# http request by sequence
-							$res = $EndPoints | ForEach-Object {Invoke-RestMethod $_}
-							$len = $res.Length
-							$res | Add-Member -Name 'service' -MemberType NoteProperty -Value $null
-							0..($len-1) | ForEach-Object {$res[$PSItem].service = $EndPoints[$PSItem]}
-							Write-Output $res | ConvertTo-Json
-						}	
-						catch {
-							Write-Output $Error[0]
+                        # http request by sequence
+						# 23-12-07 try-catch for FRE bad http status
+						$res = $EndPoints | ForEach-Object {
+							try { Invoke-RestMethod $_ } catch { $_.ErrorDetails.Message | ConvertFrom-Json }
 						}
+						$len = $res.Length
+						# apply service url in array.status
+						$res.status | Add-Member -Name 'service' -MemberType NoteProperty -Value $null
+						0..($len-1) | ForEach-Object {$res[$PSItem].status.service = $EndPoints[$PSItem]}
+						Write-Output $res | ConvertTo-Json
+						# sum approach to determine if good / bad.
 						$rcodeSwitch = ($res.code | Measure-Object -Sum).Sum
 						if(![uint32]$rcodeSwitch){
 							$state = $goodStatus
-							$refinfo = '"All '+$len+' nodes below are well; '+ [String]::Join(', ',$res.service)+'"'
+							$refinfo = 'All '+$len+' nodes below are well; '+ [String]::Join(', ',$res.status.service)
 						} else {
 							$state = $badStatus
-							$refinfo = $res | ?{$_.code -ne 0} | ConvertTo-Json -Depth 10
+							$refinfo = [String]::Join(',',($res | ?{$_.code -ne 0}).status)
+							# $refinfo_rep=$refinfo.replace('{','\{').replace('}','\}')
 						}
 						
-						$default = '{"status":"'+$state+'","desc":'+$refinfo+'}' | ConvertFrom-Json
+						$default = '{"status":"'+$state+'","desc":"'+$refinfo+'"}' | ConvertFrom-Json
 						$message = $default | ConvertTo-Json -Depth 10
 						$response.ContentType = 'application/json'
 						Out-File -Append -InputObject "$(Get-Date -DisplayHint Time) From $RemoteAddr POST Prepared response:$message" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
@@ -153,5 +151,5 @@ $listener.dispose()
 Out-File -Append -InputObject "END TIME:$(Get-Date)" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
 Out-File -Append -InputObject "--------------------Finished--------------------" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
 
-# version-0.0.3
+# version-0.1.0
 # Author@CWayneH
