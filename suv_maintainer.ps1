@@ -111,6 +111,7 @@ while ($true) {
 						# 24-02-07 apply service-url while invoke-restmethod
 						$res = $EndPoints | ForEach-Object {
 							$tmp = try { Invoke-RestMethod $_ } catch { 
+       								# create a symmetric object for response-array on throwing out.
 								[PSCustomObject] @{code='99';message=$_.Exception.toString().Replace("`r`n",";");status='-'}
 							};
 							Add-Member -InputObject $tmp -Name 'service' -MemberType NoteProperty -Value $_;
