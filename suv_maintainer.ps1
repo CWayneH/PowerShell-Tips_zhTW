@@ -108,22 +108,27 @@ while ($true) {
                     POST {
                         # http request by sequence
 						# 23-12-07 try-catch for FRE bad http status
+						# 24-02-07 apply service-url while invoke-restmethod
 						$res = $EndPoints | ForEach-Object {
-							try { Invoke-RestMethod $_ } catch { $_.ErrorDetails.Message | ConvertFrom-Json }
+							$tmp = try { Invoke-RestMethod $_ } catch { 
+								[PSCustomObject] @{code='99';message=$_.Exception.toString().Replace("`r`n",";");status='-'}
+							};
+							Add-Member -InputObject $tmp -Name 'service' -MemberType NoteProperty -Value $_;
+							return $tmp;
 						}
 						$len = $res.Length
-						# apply service url in array.status
-						$res.status | Add-Member -Name 'service' -MemberType NoteProperty -Value $null
-						0..($len-1) | ForEach-Object {$res[$PSItem].status.service = $EndPoints[$PSItem]}
+						# apply service url in array of status / end of mapping problem on 24-02-07
+						# $res.status | Add-Member -Name 'service' -MemberType NoteProperty -Value $null
+						# 0..($len-1) | ForEach-Object {$res[$PSItem].status.service = $EndPoints[$PSItem]}
 						Write-Output $res | ConvertTo-Json
 						# sum approach to determine if good / bad.
 						$rcodeSwitch = ($res.code | Measure-Object -Sum).Sum
 						if(![uint32]$rcodeSwitch){
 							$state = $goodStatus
-							$refinfo = 'All '+$len+' nodes below are well; '+ [String]::Join(', ',$res.status.service)
+							$refinfo = [String]($res | ?{$_.code -eq 0}).Count+' node(s) in good status:(list below)'+($res | ?{$_.code -eq 0}).service
 						} else {
 							$state = $badStatus
-							$refinfo = [String]::Join(',',($res | ?{$_.code -ne 0}).status)
+							$refinfo = [String]::Join("===split line===",($res | ?{$_.code -ne 0}))
 							# $refinfo_rep=$refinfo.replace('{','\{').replace('}','\}')
 						}
 						
@@ -151,5 +156,5 @@ $listener.dispose()
 Out-File -Append -InputObject "END TIME:$(Get-Date)" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
 Out-File -Append -InputObject "--------------------Finished--------------------" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
 
-# version-0.1.0
+# version-0.1.1
 # Author@CWayneH
