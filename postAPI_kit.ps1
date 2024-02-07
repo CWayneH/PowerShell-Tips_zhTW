@@ -5,16 +5,16 @@ function base64Cvrt([string]$key,[int32]$ctrl){
 		1 {return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($key))}
 	}
 }
-function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API,2:IMMI/EGATE
+function invoke4img([string]$key, [int32]$swCtrl){ #0:類別A,1:類別B的API,2:類別C
 	if(!$key.Length){
-		return $default = '{"rcode":"1003"}' | ConvertFrom-Json
+		return $default = '{"rcode":"9993"}' | ConvertFrom-Json
 	}else{
 		switch($swCtrl){
-			0 {	#申請案照片處理程序
+			0 {	#類別A照片處理程序
 				try {
 					# ip mask
 					$ip = "168.xx.xx.125:xx"
-					$EndPoint = "http://$ip/wsc.asmx/IMGObtain?strType=2&strBarcode=$key"
+					$EndPoint = "http://$ip/wsc.asmx/IMGObtain?Type=2&KEY=$key"
 					$res = Invoke-RestMethod $EndPoint -Method 'GET'
 					#處理回傳base64decode
 					$resRcode = $res.IMGObtain.RESPONSE
@@ -30,7 +30,7 @@ function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API,2:IM
 						$default = '{"rcode":"'+$resRcode+'","value":"'+$imgB64+'"}' | ConvertFrom-Json
 					} 
 					else {
-						$default = '{"rcode":"1003"}' | ConvertFrom-Json
+						$default = '{"rcode":"9993"}' | ConvertFrom-Json
 					}
 					return $default
 				}
@@ -40,11 +40,11 @@ function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API,2:IM
 					Out-File -Append -InputObject " $(Get-Date -DisplayHint Time)[error]uniqueId:$key fail by ""$err"" " $output$(Get-Date -Format "yyyy-MM-dd")'_postlog.txt'
 				}
 			}
-			1 { #Cassandraws Security照片處理程序
+			1 { #Cassandraws 類別B照片處理程序
 				try {
 					# ip mask
 					$ip = "168.xx.xx.81:xx"
-					$EndPoint = "http://$ip/cassandraws/ws/rs/lisImageService/queryImage"
+					$EndPoint = "http://$ip/cassandraws/ws/BImageService/queryImage"
 					$Headers = @{ 'Content-Type' = 'application/json'; }
 					$Body = (@{"uniqueId" = $key } | ConvertTo-Json)
 					$res = Invoke-RestMethod $EndPoint -Method 'POST' -Headers $Headers -Body $Body
@@ -57,16 +57,16 @@ function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API,2:IM
 					Out-File -Append -InputObject " $(Get-Date -DisplayHint Time)[error]uniqueId:$key fail by ""$err"" " $output$(Get-Date -Format "yyyy-MM-dd")'_postlog.txt'
 				}
 			}
-			2 { #Cassandraws IMMI/EGATE照片處理程序
+			2 { #Cassandraws 類別C照片處理程序
 				try {
 					# ip mask
 					$ip = "168.xx.xx.81:xx"
-					$EndPoint = "http://$ip/cassandraws/ws/rs/niaImageService/getImage"
+					$EndPoint = "http://$ip/cassandraws/ws/CImageService/queryImage"
 					$Headers = @{ 'Content-Type' = 'application/json'; }
 					$passid = $key.Substring(0,10)
 					$cdate = $key.Substring(10,8)
 					$cn = $key.Substring(18,5)
-					$Body = (@{"passengerId" = $passid ; "capDate" = $cdate ; "capNo" = $cn ; "nosqlType" = "EgateApplyImage"} | ConvertTo-Json)
+					$Body = (@{"passengerId" = $passid ; "capDate" = $cdate ; "capNo" = $cn ; "nosqlType" = "C-2ApplyImage"} | ConvertTo-Json)
 					$res = Invoke-RestMethod $EndPoint -Method 'POST' -Headers $Headers -Body $Body
 					$default = $res
 					return $default
@@ -82,7 +82,7 @@ function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API,2:IM
 }
 
 Out-File -Append -InputObject "START TIME:$(Get-Date)" $output$(Get-Date -Format "yyyy-MM-dd")'_postlog.txt'
-$postWay = Read-Host "Choose one POST Path (1:SECURITY, 2:IMMI/EGATE, 3:APPLYCASE):"
+$postWay = Read-Host "Choose one POST Path (1:類別B, 2:類別C, 3:類別A):"
 $dataArr = Get-Content D:\{path}\API\postAPI_target\*.csv -Encoding UTF8
 $keyPos = Read-Host "?Where is Key Column offset(0-N)"
 switch($postWay){
@@ -111,11 +111,11 @@ switch($postWay){
 						Out-File -Append -InputObject "$(Get-Date -DisplayHint Time) Getpic of $key from ResidenceNo($keyRsi)" $output$(Get-Date -Format "yyyy-MM-dd")'_postlog.txt'
 						$key = $keyRsi + '@' + $key
 					}else{
-						$payload = '{"rcode":"1003"}' | ConvertFrom-Json
+						$payload = '{"rcode":"9993"}' | ConvertFrom-Json
 					}
 					
 				}else{
-					$payload = '{"rcode":"9999","value":"Wrong getImage Type "}' | ConvertFrom-Json
+					$payload = '{"rcode":"999","value":"Wrong getImage Type "}' | ConvertFrom-Json
 				}
 				
 				$rcode = $payload.rcode
@@ -139,7 +139,7 @@ switch($postWay){
 		
 	}
 	2{
-		$photoType = Read-Host "Choose getImage Type (0:IMMI/1:EGATE)"
+		$photoType = Read-Host "Choose getImage Type (0:C-1/1:C-2)"
 		try{
 			for($i=0;$i-lt$dataArr.Length;$i++){
 			
@@ -149,7 +149,7 @@ switch($postWay){
 				}elseif([uint32]$phtotType){
 					$payload = $(invoke4img $key 3)
 				}else{
-					$payload = '{"rcode":"9999","value":"Wrong getImage Type "}' | ConvertFrom-Json
+					$payload = '{"rcode":"999","value":"Wrong getImage Type "}' | ConvertFrom-Json
 				}
 				
 				$rcode = $payload.rcode
