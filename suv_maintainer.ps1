@@ -3,9 +3,9 @@
 
 $op_rec = '.\Logs\'
 Out-File -Append -InputObject "START TIME:$(Get-Date)" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
-# Create a listener on port 5987
+# Create a listener on port 59876
 $listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add('http://+:5987/') 
+$listener.Prefixes.Add('http://+:59876/') 
 $listener.Start()
 'Listening ...'
 $counter = 0
@@ -17,14 +17,13 @@ while ($true) {
     $reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $request.InputStream, $request.ContentEncoding
     # Setup a place to deliver a response
     $response = $context.Response
-	
-	# initial setup
-	$goodStatus = "G"
-	$badStatus = "Y"
-	$IPs = "168.**.**.202","168.**.**.203"
-	$ports = 8**1,8**2,8**0
-	$frame = "http:///check_all"
-	$EndPoints = foreach ($i in $IPs){ foreach ($j in $ports) {$frame.Insert(7,$i+":"+$j)} }
+    # initial setup
+    $goodStatus = "G"
+    $badStatus = "Y"
+    $IPs = "168.**.**.202","168.**.**.203"
+    $ports = 8**1,8**2,8**0
+    $frame = "http:///check_all"
+    $EndPoints = foreach ($i in $IPs){ foreach ($j in $ports) {$frame.Insert(7,$i+":"+$j)} }
     if ($request.url.PathAndQuery -match "/end$")
     {Break;}
 	else {
