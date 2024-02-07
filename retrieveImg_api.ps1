@@ -7,16 +7,16 @@ function base64Cvrt([string]$key,[int32]$ctrl){
 		1 {return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($key))}
 	}
 }
-function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API
+function invoke4img([string]$key, [int32]$swCtrl){ #0:類別A,1:類別B的API
 	if(!$key.Length){
-		return $default = '{"rcode":"1003"}' | ConvertFrom-Json
+		return $default = '{"rcode":"9993"}' | ConvertFrom-Json
 	}else{
 		switch($swCtrl){
-			0 {	#申請案照片處理程序
+			0 {	#類別A照片處理程序
 				try {
 					# ip mask
 					$ip = "168.xx.xx.125:xx"
-					$EndPoint = "http://$ip/wsc.asmx/IMGObtain?strType=2&strBarcode=$key"
+					$EndPoint = "http://$ip/wsc.asmx/IMGObtain?Type=2&Key=$key"
 					$res = Invoke-RestMethod $EndPoint -Method 'GET'
 					#處理回傳base64decode
 					$resRcode = $res.IMGObtain.RESPONSE
@@ -32,7 +32,7 @@ function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API
 						$default = '{"rcode":"'+$resRcode+'","value":"'+$imgB64+'"}' | ConvertFrom-Json
 					} 
 					else {
-						$default = '{"rcode":"1003"}' | ConvertFrom-Json
+						$default = '{"rcode":"9993"}' | ConvertFrom-Json
 					}
 					return $default
 				}
@@ -42,11 +42,11 @@ function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API
 					Out-File -Append -InputObject " $(Get-Date -DisplayHint Time)[error]uniqueId:$key fail by ""$err"" " $op_rec$(Get-Date -Format "yyyy-MM-dd")'_API_Log.txt'
 				}
 			}
-			1 { #管制照片處理程序
+			1 { #類別B照片處理程序
 				try {
 					# ip mask
 					$ip = "168.xx.xx.81:xx"
-					$EndPoint = "http://$ip/cassandraws/ws/rs/lisImageService/queryImage"
+					$EndPoint = "http://$ip/cassandraws/ws/rs/BImageService/queryImage"
 					$Headers = @{ 'Content-Type' = 'application/json'; }
 					$Body = (@{"uniqueId" = $key } | ConvertTo-Json)
 					$res = Invoke-RestMethod $EndPoint -Method 'POST' -Headers $Headers -Body $Body
@@ -64,9 +64,9 @@ function invoke4img([string]$key, [int32]$swCtrl){ #0:申請案,1:管制API
 }
 
 Out-File -Append -InputObject "START TIME:$(Get-Date)" $op_rec$(Get-Date -Format "yyyy-MM-dd")'_API_Log.txt'
-# Create a listener on port 5987
+# Create a listener on port 59876
 $listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add('http://+:5987/') 
+$listener.Prefixes.Add('http://+:59876/') 
 $listener.Start()
 'Listening ...'
  
@@ -166,7 +166,7 @@ while ($true) {
                 }
             }
 			#取得local照片
-            "/localimg/cassandraws/ws/rs/lisImageService/queryImage" {
+            "/localimg/cassandraws/ws/rs/BImageService/queryImage" {
                 Switch ($request.HttpMethod) {
                 default {
                         $message = "<HTML><body>Unsupported Method</body></HTML>"
@@ -204,7 +204,7 @@ while ($true) {
                 }
             }
             #取得他地照片(需變key值)
-			"/redirimg/cassandraws/ws/rs/lisImageService/queryImage" {
+			"/redirimg/cassandraws/ws/rs/BImageService/queryImage" {
                 Switch ($request.HttpMethod) {
                 default {
                         $message = "<HTML><body>Unsupported Method</body></HTML>"
@@ -233,7 +233,7 @@ while ($true) {
 						try {
 							# ip mask
 							$ip = "168.xx.xx.125:xx"
-							$EndPoint = "http://$ip/wsc.asmx/IMGObtain?strType=2&strBarcode=$key"
+							$EndPoint = "http://$ip/wsc.asmx/IMGObtain?Type=2&Key=$key"
 							$res = Invoke-RestMethod $EndPoint -Method 'GET'
 							Write-Output $res | ConvertTo-Json
 							
@@ -249,7 +249,7 @@ while ($true) {
 						$resUrl = $(base64Cvrt $resUrl 1)
 						$resUrl = (Invoke-WebRequest $resUrl).Content
 						$imgB64 = $(base64Cvrt $resUrl 0)
-						if(![uint32]$resRcode){$resRcode = '0000'} else {$resRcode = '1003'}
+						if(![uint32]$resRcode){$resRcode = '0000'} else {$resRcode = '9993'}
 						$default = '{"rcode":"'+$resRcode+'","value":"'+$imgB64+'"}' | ConvertFrom-Json
 						$message = $default | ConvertTo-Json -Depth 10
                         $response.ContentType = 'application/json'
@@ -257,7 +257,7 @@ while ($true) {
                 }
             }	
 			#取得他地照片(parse原始資料找取照片key值)
-			"/parseimg/cassandraws/ws/rs/lisImageService/queryImage" {
+			"/parseimg/cassandraws/ws/rs/BImageService/queryImage" {
                 Switch ($request.HttpMethod) {
 				default {
                         $message = "<HTML><body>Unsupported Method</body></HTML>"
@@ -284,7 +284,7 @@ while ($true) {
                         $key = $v.uniqueId
 						Out-File -Append -InputObject "$(Get-Date -DisplayHint Time) TARGET UniqueId:$key" $op_rec$(Get-Date -Format "yyyy-MM-dd")'_API_Log.txt'
 						$filePath = '.\retrieve_dataset\'
-						#第一次呼叫管制API
+						#第一次呼叫類別B的API
 						$default = $(invoke4img $key 1)
 						$Error.Clear()
 						#檢查ERR檔案有無相同uniqueId對應的基資
@@ -303,8 +303,8 @@ while ($true) {
 								Out-File -Append -InputObject " $(Get-Date -DisplayHint Time)[getpic]uniqueId:$key " $op_rec$(Get-Date -Format "yyyy-MM-dd")'_API_Log.txt'
 							}elseif(!$Error[0]) #檢查ERR檔案有相同uniqueId即True進行Parse並呼叫Esico API
 							{
-								$keyRcv = $temp.Split(",")[5].Trim() #收件號欄位
-								$keyRsi = $temp.Split(",")[8].Trim() #居留證號欄位
+								$keyRcv = $temp.Split(",")[5].Trim() #證號A欄位
+								$keyRsi = $temp.Split(",")[8].Trim() #證號B欄位
 								if(![uint32]($(invoke4img $keyRcv 0).rcode)){ #檢查rcode為0即True
 									$default = $(invoke4img $keyRcv 0)
 									Write-Output $default' [get pic]receive no: '$keyRcv
@@ -313,11 +313,11 @@ while ($true) {
 									$default = $(invoke4img $keyRsi 0)
 									Write-Output $default' [get pic]residence no: '$keyRsi
 									Out-File -Append -InputObject " $(Get-Date -DisplayHint Time)[getpic]residence no:$keyRsi " $op_rec$(Get-Date -Format "yyyy-MM-dd")'_API_Log.txt'
-								}else{ #uniqueId對應收件號或居留證號查無照片逕以管制API結果回傳
+								}else{ #uniqueId對應證號A或證號B查無照片逕以類別B的API結果回傳
 									Write-Output $default' [nopics]ERR had mapping data: '$keyRcv, $keyRsi
 									Out-File -Append -InputObject " $(Get-Date -DisplayHint Time)[nopics]ERR had mapping data:$keyRcv, $keyRsi ." $op_rec$(Get-Date -Format "yyyy-MM-dd")'_API_Log.txt'
 								}
-							#ERR檔案內無對應可用基資逕以管制API結果回傳
+							#ERR檔案內無對應可用基資逕以類別B的API結果回傳
 							}else{	
 								Write-Output $default' [nopics]ERR had no mapping data '	
 								Out-File -Append -InputObject " $(Get-Date -DisplayHint Time)[nopics]ERR had no mapping data " $op_rec$(Get-Date -Format "yyyy-MM-dd")'_API_Log.txt'
