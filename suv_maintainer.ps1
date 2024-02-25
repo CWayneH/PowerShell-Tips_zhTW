@@ -110,7 +110,6 @@ while ($true) {
 						# 24-02-07 apply service-url while invoke-restmethod
 						$res = $EndPoints | ForEach-Object {
 							$tmp = try { Invoke-RestMethod $_ } catch { 
-       								# create a symmetric object for response-array on throwing out.
 								[PSCustomObject] @{code='99';message=$_.Exception.toString().Replace("`r`n",";");status='-'}
 							};
 							Add-Member -InputObject $tmp -Name 'service' -MemberType NoteProperty -Value $_;
@@ -121,15 +120,20 @@ while ($true) {
 						# $res.status | Add-Member -Name 'service' -MemberType NoteProperty -Value $null
 						# 0..($len-1) | ForEach-Object {$res[$PSItem].status.service = $EndPoints[$PSItem]}
 						Write-Output $res | ConvertTo-Json
+						$norm = $res | ?{$_.code -eq 0}
+						$refinfo = [String]$norm.Count+' node(s) in good status:(list below)'+$nrom.service
 						# sum approach to determine if good / bad.
 						$rcodeSwitch = ($res.code | Measure-Object -Sum).Sum
 						if(![uint32]$rcodeSwitch){
 							$state = $goodStatus
-							$refinfo = [String]($res | ?{$_.code -eq 0}).Count+' node(s) in good status:(list below)'+($res | ?{$_.code -eq 0}).service
+							# $refinfo = [String]($res | ?{$_.code -eq 0}).Count+' node(s) in good status:(list below)'+($res | ?{$_.code -eq 0}).service
 						} else {
 							$state = $badStatus
-							$refinfo = [String]::Join("===split line===",($res | ?{$_.code -ne 0}))
+							$tmp = $res | ?{$_.code -ne 0}
+							$badinfo=0..($tmp.Length-1) | ForEach-Object {'[WARN]WHILE CALLING '+$tmp[$_].service+' ENCOUNTER WITH A PROBLEM:'+$tmp[$_].message}
+							# $refinfo = [String]::Join("===split line===",($res | ?{$_.code -ne 0}))
 							# $refinfo_rep=$refinfo.replace('{','\{').replace('}','\}')
+							$refinfo = $refinfo+';;;BUT YOU SHOULD PAY ATTENTIONE TO'+$badinfo
 						}
 						
 						$default = '{"status":"'+$state+'","desc":"'+$refinfo+'"}' | ConvertFrom-Json
