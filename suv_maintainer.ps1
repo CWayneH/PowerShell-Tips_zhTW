@@ -162,3 +162,7 @@ Out-File -Append -InputObject "--------------------Finished--------------------"
 
 # version-0.1.1
 # Author@CWayneH
+
+# bring kill-switch idea:
+# $latest_p = ( Get-Process -Name powershell | Select-Object Id, StartTime | Sort-Object StartTime ).id[-1]
+# Stop-Process $latest_p -ErrorAction Ignore
