@@ -1,6 +1,12 @@
 # Reference: http://hkeylocalmachine.com/?p=518
 # Reference: https://tech.zsoldier.com/2018/08/powershell-making-restful-api-endpoint.html
 
+# myScript.ps1 -IPs host1,host2,host3 -ports 2345,3456,5678
+# params (
+#	[String[]] $IPs, 
+# 	[String[]] $ports
+# )
+
 $op_rec = '.\Logs\'
 Out-File -Append -InputObject "START TIME:$(Get-Date)" $op_rec'_'$(Get-Date -Format "yyyy-MM-dd")'_apilog.txt'
 # Create a listener on port 59876
