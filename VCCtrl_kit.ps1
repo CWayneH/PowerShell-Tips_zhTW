@@ -1,7 +1,14 @@
 function Sleep-Timer($t) {
-	$t..0 | ForEach-Object {
-		Start-Sleep -s 1
-		Write-Progress -activity "Next round in.. " -Status $_" (seconds)"
+	$t..1 | ForEach-Object {
+		$tstp = $(Get-Date); # for timestamp
+		$ts = New-TimeSpan -Seconds $_; # for time span
+		$secLeft = $ts.Seconds;
+		$minLeft = $ts.Minutes;
+		Write-Progress -activity "Next round in.. " -Status $minLeft" minutes "$secLeft" seconds";
+		$elps = $(Get-Date) - $tstp; # for time elapsed.
+		# Write-Host (1-$elps.TotalSeconds);
+		Start-Sleep -Seconds (1-$elps.TotalSeconds); # time remain
+		$ts, $secLeft, $minLeft, $elps = $null; # gc, release resources
 	}
 }
 function Input-Pwd() {
