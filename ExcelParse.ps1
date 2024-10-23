@@ -11,9 +11,11 @@ DO
   $sp_file_name = Read-Host "State Property File Name"
   $ExcelWorkBook = $ExcelObj.Workbooks.Open($ExcelFileDir+'\'+$sp_file_name)
   $sp_list_uni = $ExcelWorkBook.Sheets.Item(1).columns(1).value2
+  $sp_list_uni = $sp_list_uni | Where-Object { $_ -ne $null }
   $al_file_name = Read-Host "Asset Ledger File Name"
   $ExcelWorkBook = $ExcelObj.Workbooks.Open($ExcelFileDir+'\'+$al_file_name)
   $al_list_uni = $ExcelWorkBook.Sheets.Item(1).columns(1).value2
+  $al_list_uni = $al_list_uni | Where-Object { $_ -ne $null }
   $res = (Compare-Object -ReferenceObject ($sp_list_uni) -DifferenceObject ($al_list_uni)).InputObject
   
   # output
