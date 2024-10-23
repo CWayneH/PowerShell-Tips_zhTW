@@ -6,3 +6,12 @@ $sheet_list = Get-ChildItem -Name *.xls
 $ExcelObj = New-Object -ComObject Excel.Application
 $ExcelWorkBook = $ExcelObj.Workbooks.Open('D:\\..\\..\\ASSET.xls')
 $ExcelWorkBook.Sheets.Item(1).range("A:A")
+
+# gc
+$ExcelObj.Workbooks.Close()$ExcelObj.Quit()
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($ExcelObj)
+Remove-Variable $ExcelObj
+
+pause
+
+# Author@CWayneH
