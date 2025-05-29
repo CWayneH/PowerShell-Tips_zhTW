@@ -12,7 +12,28 @@ param (
   [String[]] $c_params
 )
 ```
-## B: http+ssl for PowerShell WebServer(PSWS)
+## B: Convert base64 coding
+```powershell
+function base64Cvrt([string]$payload,[int32]$ctrl){
+	switch($ctrl){ 
+		0 {return [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($payload))}
+		1 {return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($payload))}
+	}
+}
+```
+
+## C: HTTP Post
+```powershell
+$endpoint = "http://localhost:2379"
+$path= "/v1/api/gateway"
+$data_Key = "key"
+$data_Value = "value" 
+$payload = '{"key": "'+$data_Key+'", "value": "'+$data_Value+'"}'
+Invoke-WebRequest -Uri "$endpoint$path" -Method POST -Body $payload # get web format.
+Invoke-RestMethod -Uri "$endpoint$path" -Method POST -Body $payload # get response data.
+```
+
+## D: http+ssl for PowerShell WebServer(PSWS)
 - ### self-certificate
 ```runas /user:administrator powershell``` or 
 ```Start-Process powershell -Verb runas```
