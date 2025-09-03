@@ -75,3 +75,15 @@ netsh http delete sslcert ipport=0.0.0.0:8443
 ```powershell
 Remove-Item CERT:\LocalMachine\My\$($CERTIFICATE.Thumbprint)
 ```
+
+## E: try-catch
+```powershell
+try {
+		$EndPoint = "http://localhost:2379"
+		$res = Invoke-RestMethod -Uri $EndPoint -Method "GET"
+		Write-Output $res | ConvertTo-Json
+	} catch {
+				Write-Output $Error[0]
+				$Error[0] = $(Get-Date -DisplayHint Time).ToString()+$_.Exception.toString().Replace("`r`n",";")
+			}
+```
